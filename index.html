@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今天吃什么 🐷</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #ffd6e8, #ffe9c7, #d6f5ff);
+    font-family: "Comic Sans MS", "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    color: #6b4a4a;
+  }
+  h1 {
+    font-size: clamp(20px, 6vw, 28px);
+    color: #ff6f9c;
+    text-shadow: 1px 1px 0 #fff;
+    margin: 4px 0 14px;
+    text-align: center;
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    width: 100%;
+    max-width: 340px;
+  }
+  .wheel-area {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    padding-top: 30px;
+    margin: 0 auto;
+  }
+  .wheel-inner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-shadow: 0 10px 25px rgba(255,150,180,0.4);
+    background: #fff;
+    touch-action: manipulation;
+  }
+  .pointer {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 44px;
+    height: 52px;
+    transform: translateX(-50%);
+    z-index: 5;
+    filter: drop-shadow(0 4px 5px rgba(255,110,150,0.45));
+  }
+  .pointer .arrow-body {
+    position: absolute;
+    left: 50%;
+    top: 14px;
+    width: 0;
+    height: 0;
+    transform: translateX(-50%);
+    border-left: 17px solid transparent;
+    border-right: 17px solid transparent;
+    border-top: 30px solid #ff6f9c;
+  }
+  .pointer .arrow-body::after {
+    content: '';
+    position: absolute;
+    left: -13px;
+    top: -30px;
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-top: 22px solid #fff;
+  }
+  .pointer .heart {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .pointer .eye {
+    position: absolute;
+    width: 4px; height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    top: 20px;
+  }
+  .pointer .eye.l { left: 15px; }
+  .pointer .eye.r { left: 25px; }
+  .pointer .cheek {
+    position: absolute;
+    width: 5px; height: 3px;
+    background: #ffb3d1;
+    border-radius: 50%;
+    top: 24px;
+    opacity: 0.8;
+  }
+  .pointer .cheek.l { left: 9px; }
+  .pointer .cheek.r { left: 30px; }
+  .pointer.bounce { animation: pointerBounce 0.4s ease-in-out; }
+  @keyframes pointerBounce {
+    0% { transform: translateX(-50%) scale(1); }
+    30% { transform: translateX(-50%) scale(0.85, 1.15); }
+    60% { transform: translateX(-50%) scale(1.1, 0.9); }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+  .center-btn {
+    position: absolute;
+    top: calc(50% + 15px);
+    left: 50%;
+    width: 26%;
+    aspect-ratio: 1/1;
+    min-width: 64px;
+    max-width: 90px;
+    margin-top: -13%;
+    margin-left: -13%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff9ec7, #ff6f9c);
+    color: #fff;
+    border: 4px solid #fff;
+    font-size: clamp(13px, 4vw, 18px);
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255,110,150,0.5);
+    z-index: 4;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .center-btn:active { transform: translate(0,0) scale(0.95); }
+  #result {
+    margin-top: 4px;
+    text-align: center;
+    font-size: clamp(17px, 5vw, 22px);
+    font-weight: bold;
+    color: #ff6f9c;
+    min-height: 30px;
+    width: 100%;
+  }
+  .panel {
+    background: #fff;
+    border-radius: 20px;
+    padding: 18px;
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+  .panel h3 {
+    margin-top: 0;
+    color: #ff6f9c;
+    font-size: clamp(16px, 4.5vw, 19px);
+  }
+  .add-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .add-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 2px solid #ffd6e8;
+    border-radius: 10px;
+    outline: none;
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .add-row button {
+    background: #ffb6d5;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 15px;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .add-row button:active { background: #ff8fbd; }
+  ul#menuList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  ul#menuList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff5f8;
+    margin-bottom: 6px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  ul#menuList li .food-label {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .dot { flex-shrink: 0; display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; }
+  ul#menuList li button {
+    background: transparent;
+    border: none;
+    color: #ff6f9c;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 6px 8px;
+    flex-shrink: 0;
+  }
+  .hint { font-size: 12px; color: #b58; margin-top: 6px; text-align:center;}
+
+  @media (max-width: 400px) {
+    body { padding: 10px; }
+    .container { gap: 16px; }
+    .panel { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>今天吃什么呀 🐷💕</h1>
+
+<div class="container">
+  <div style="width:100%;">
+    <div class="wheel-area">
+      <div class="pointer" id="pointer">
+        <div class="heart">💗</div>
+        <div class="arrow-body"></div>
+        <div class="eye l"></div>
+        <div class="eye r"></div>
+        <div class="cheek l"></div>
+        <div class="cheek r"></div>
+      </div>
+      <div class="wheel-inner">
+        <canvas id="wheel"></canvas>
+        <button class="center-btn" id="spinBtn">开始<br>转动</button>
+      </div>
+    </div>
+    <div id="result">选好菜单，点我转起来〜</div>
+  </div>
+
+  <div class="panel">
+    <h3>菜单管理 🍜</h3>
+    <div class="add-row">
+      <input id="foodInput" type="text" placeholder="输入想吃的菜名~" maxlength="10">
+      <button id="addBtn">添加</button>
+    </div>
+    <ul id="menuList"></ul>
+    <div class="hint">点击🗑删除，至少保留2个菜哦</div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'whatToEat_menu_v1';
+const colors = ['#FFB6D5','#FFD6A5','#FFF3B0','#C1FBA4','#A0E7E5','#B4A7FF','#FFC6FF','#9BF6FF'];
+const defaultMenu = ['火锅','炸鸡','烤肉','麻辣香锅','寿司','披萨'];
+
+function loadMenu() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const arr = JSON.parse(saved);
+      if (Array.isArray(arr) && arr.length >= 2) return arr;
+    }
+  } catch (e) {}
+  return defaultMenu.slice();
+}
+function saveMenu() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(menu)); } catch (e) {}
+}
+
+let menu = loadMenu();
+
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+let radius = 170;
+let currentAngle = 0;
+let spinning = false;
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const cssSize = canvas.parentElement.clientWidth;
+  canvas.width = cssSize * dpr;
+  canvas.height = cssSize * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  radius = cssSize / 2;
+  drawWheel();
+}
+
+function drawWheel() {
+  const n = menu.length;
+  const arc = (2 * Math.PI) / n;
+  ctx.clearRect(0, 0, radius * 2, radius * 2);
+  for (let i = 0; i < n; i++) {
+    const startAngle = currentAngle + i * arc;
+    const endAngle = startAngle + arc;
+    ctx.beginPath();
+    ctx.moveTo(radius, radius);
+    ctx.arc(radius, radius, radius - 4, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(radius, radius);
+    ctx.rotate(startAngle + arc / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#5a3d3d';
+    const fontSize = Math.max(11, Math.round(radius * 0.094));
+    ctx.font = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+    ctx.fillText(menu[i], radius - radius * 0.12, 5);
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.arc(radius, radius, radius - 2, 0, 2 * Math.PI);
+  ctx.strokeStyle = '#ff6f9c';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+}
+
+function renderMenuList() {
+  const ul = document.getElementById('menuList');
+  ul.innerHTML = '';
+  menu.forEach((food, idx) => {
+    const li = document.createElement('li');
+
+    const label = document.createElement('span');
+    label.className = 'food-label';
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = colors[idx % colors.length];
+    label.appendChild(dot);
+    label.appendChild(document.createTextNode(food));
+
+    const btn = document.createElement('button');
+    btn.textContent = '🗑';
+    btn.onclick = () => {
+      if (menu.length <= 2) {
+        alert('至少要留2个菜，不然轮盘会伤心的 🥺');
+        return;
+      }
+      menu.splice(idx, 1);
+      saveMenu();
+      renderMenuList();
+      drawWheel();
+    };
+    li.appendChild(label);
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+}
+
+document.getElementById('addBtn').onclick = () => {
+  const input = document.getElementById('foodInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (menu.includes(val)) {
+    alert('这个菜已经在菜单里啦〜');
+    return;
+  }
+  menu.push(val);
+  saveMenu();
+  input.value = '';
+  renderMenuList();
+  drawWheel();
+};
+
+document.getElementById('foodInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('addBtn').click();
+});
+
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTick() {
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(1100, t);
+  gain.gain.setValueAtTime(0.12, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.06);
+}
+
+function playOink() {
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(320, t);
+  osc.frequency.exponentialRampToValueAtTime(620, t + 0.12);
+  osc.frequency.exponentialRampToValueAtTime(260, t + 0.28);
+  gain.gain.setValueAtTime(0.22, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.33);
+}
+
+function playWinChime() {
+  ensureAudio();
+  const notes = [523.25, 659.25, 783.99];
+  notes.forEach((f, i) => {
+    const t = audioCtx.currentTime + i * 0.12;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(f, t);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.3);
+  });
+}
+
+const pointerEl = document.getElementById('pointer');
+
+document.getElementById('spinBtn').addEventListener('click', () => {
+  if (spinning) return;
+  if (menu.length < 2) {
+    alert('请先添加至少2个菜哦〜');
+    return;
+  }
+  ensureAudio();
+  spinning = true;
+  document.getElementById('result').textContent = '转呀转呀... 🎡💨';
+
+  const spinDuration = 3200;
+  const startTime = performance.now();
+  const totalWheelRotation = (6 + Math.random() * 3) * 2 * Math.PI;
+  const startAngle = currentAngle;
+  const n = menu.length;
+  const arc = (2 * Math.PI) / n;
+  let lastTickCount = Math.floor(startAngle / arc);
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / spinDuration, 1);
+    const eased = easeOutCubic(t);
+
+    currentAngle = startAngle + totalWheelRotation * eased;
+    drawWheel();
+
+    const tickCount = Math.floor(currentAngle / arc);
+    if (tickCount > lastTickCount) {
+      const crossed = Math.min(tickCount - lastTickCount, 4);
+      for (let k = 0; k < crossed; k++) playTick();
+      pointerEl.classList.remove('bounce');
+      void pointerEl.offsetWidth;
+      pointerEl.classList.add('bounce');
+      lastTickCount = tickCount;
+    }
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      spinning = false;
+      const normalized = ((2 * Math.PI - (currentAngle % (2 * Math.PI))) + Math.PI * 1.5) % (2 * Math.PI);
+      const index = Math.floor(normalized / arc) % n;
+      const chosen = menu[index];
+      document.getElementById('result').textContent = `今天就吃 ${chosen} 啦！🎉💗`;
+      playOink();
+      setTimeout(playWinChime, 250);
+    }
+  }
+  requestAnimationFrame(animate);
+});
+
+renderMenuList();
+resizeCanvas();
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(resizeCanvas, 150);
+});
+</script>
+</body>
+</html>
